@@ -5,8 +5,10 @@ A read-optimized distributed linear-scaling in-memory Geospatial Database/Index.
 Search for complex geometries.
 
 # Goals
-Query 1 million complex geometries, restricting and sorting on properties, and return the top 100 in ~.1 sec from a 3-node cluster.
 
+* Query 1 million complex geometries, restricting and sorting on properties, and return the top 100 in ~.1 sec from a 3-node cluster.
+* Auto-rebalance when adding server nodes.
+* Persistence mechanism to allow for quicker initialization.
 
 
 # Architecture
