@@ -1,7 +1,6 @@
 package index
 
 import (
-	_ "fmt"
 	"github.com/dhconnelly/rtreego"
 	"github.com/paulsmith/gogeos/geos"
 )
@@ -17,25 +16,63 @@ func (t *Element) Bounds() *rtreego.Rect {
 }
 
 // Create a new Element
-func NewElement(id string, geom *geos.Geometry) *Element {
+func NewElement(id string, geom *geos.Geometry) (elem *Element, geosError error) {
+
+	var (
+		minX float64
+		minY float64
+		maxX float64
+		maxY float64
+		err error
+	)
 
 	// Get the envelope
-	bounds, _ := geom.Envelope()
-	shell, _ := bounds.Shell()
-	points, _ := shell.NPoint()
+	bounds, err := geom.Envelope()
+	if err != nil {
+    	return nil, err
+    }
+	shell, err := bounds.Shell()
+	if err != nil {
+    	return nil, err
+    }
+	points, err := shell.NPoint()
+	if err != nil {
+    	return nil, err
+    }
 
-	initialPoint, _ := shell.Point(0)
-	minX, _ := initialPoint.X()
-	minY, _ := initialPoint.Y()
-	maxX, _ := initialPoint.X()
-	maxY, _ := initialPoint.Y()
+    // Set the initial point
+	initialPoint, err := shell.Point(0)
+	if err != nil {
+    	return nil, err
+    }
+	minX, err = initialPoint.X()
+	if err != nil {
+    	return nil, err
+    }
+	minY, err = initialPoint.Y()
+	if err != nil {
+    	return nil, err
+    }
+	maxX, err = initialPoint.X()
+	if err != nil {
+    	return nil, err
+    }
+	maxY, err = initialPoint.Y()
 
 	// Get min and max x/y
 	for i := 1; i < points; i++ {
-		point, _ := shell.Point(i)
-		x, _ := point.X()
-		y, _ := point.Y()
-
+		point, err := shell.Point(i)
+		if err != nil {
+	    	return nil, err
+	    }
+		x, err := point.X()
+		if err != nil {
+	    	return nil, err
+	    }
+		y, err := point.Y()
+		if err != nil {
+	    	return nil, err
+	    }
 		if x <= minX && y <= minY {
 			minX = x
 			minY = y
@@ -47,11 +84,14 @@ func NewElement(id string, geom *geos.Geometry) *Element {
 	}
 
 	// Create rectangle from min/max points
-	r1, _ := rtreego.NewRect(rtreego.Point{minX,minY}, []float64{maxX-minX,maxY-minY})
+	r1, err := rtreego.NewRect(rtreego.Point{minX,minY}, []float64{maxX-minX,maxY-minY})
+	if err != nil {
+    	return nil, err
+    }
 
 	pgeom := geom.Prepare()
 
-	return &Element{id, pgeom, r1}
+	return &Element{id, pgeom, r1}, nil
 
 }
 
