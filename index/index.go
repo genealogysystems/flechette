@@ -1,42 +1,58 @@
 package index
 
 import (
-	"fmt"
+	_ "fmt"
 	"github.com/dhconnelly/rtreego"
+	"github.com/paulsmith/gogeos/geos"
 )
-
-func NewElement(id string) *Element {
-
-	p1 := rtreego.Point{0.4, 0.5}
-	r1, _ := rtreego.NewRect(p1, []float64{1, 2})
-
-	return &Element{id, r1}
-
-}
 
 type Element struct {
 	id    string
-	where *rtreego.Rect
+	geom *geos.PGeometry
+	envelope *rtreego.Rect
 }
 
 func (t *Element) Bounds() *rtreego.Rect {
-	return t.where
+	return t.envelope
 }
 
-func NewIndex() *Index {
-	rt := rtreego.NewTree(2, 25, 50)
-	/*
-		p1 := rtreego.Point{0.4, 0.5}
-		p2 := rtreego.Point{6.2, -3.4}
-		r1, _ := rtreego.NewRect(p1, []float64{1, 2})
-		r2, _ := rtreego.NewRect(p2, []float64{1.7, 2.7})
+// Create a new Element
+func NewElement(id string, geom *geos.Geometry) *Element {
 
-		rt.Insert(&Element{"123", r1})
-		rt.Insert(&Element{"abc", r2})
+	// Get the envelope
+	bounds, _ := geom.Envelope()
+	shell, _ := bounds.Shell()
+	points, _ := shell.NPoint()
 
-		fmt.Println(rt.Size())
-	*/
-	return &Index{rt}
+	initialPoint, _ := shell.Point(0)
+	minX, _ := initialPoint.X()
+	minY, _ := initialPoint.Y()
+	maxX, _ := initialPoint.X()
+	maxY, _ := initialPoint.Y()
+
+	// Get min and max x/y
+	for i := 1; i < points; i++ {
+		point, _ := shell.Point(i)
+		x, _ := point.X()
+		y, _ := point.Y()
+
+		if x <= minX && y <= minY {
+			minX = x
+			minY = y
+		}
+		if x >= maxX && y >= maxY {
+			maxX = x
+			maxY = y
+		}
+	}
+
+	// Create rectangle from min/max points
+	r1, _ := rtreego.NewRect(rtreego.Point{minX,minY}, []float64{maxX-minX,maxY-minY})
+
+	pgeom := geom.Prepare()
+
+	return &Element{id, pgeom, r1}
+
 }
 
 type Index struct {
@@ -45,7 +61,13 @@ type Index struct {
 
 func (t *Index) Insert(elem *Element) {
 	t.rtree.Insert(elem)
-	fmt.Println(elem.id)
-	fmt.Println(t.rtree.Size())
-	return
+}
+
+func (t *Index) Remove(elem *Element) {
+	t.rtree.Delete(elem)
+}
+
+func NewIndex() *Index {
+	rt := rtreego.NewTree(2, 25, 50)
+	return &Index{rt}
 }
